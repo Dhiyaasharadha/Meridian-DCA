@@ -6,11 +6,11 @@ An autonomous, yield-optimized Dollar-Cost Averaging (DCA) engine powered by Ope
 
 ---
 
-## 📌 Problem
+##  Problem
 
 Traditional Dollar-Cost Averaging (DCA) protocols require users to deposit capital into idle wallet balances or static smart contracts where it waits for execution without earning return. Furthermore, traditional DCA engines execute on rigid time schedules regardless of market volatility, depth, or pool slippage, leading to significant value leakage during temporary price spikes and low-liquidity conditions.
 
-## 💡 Solution
+##  Solution
 
 **Meridian DCA** solves both inefficiencies:
 1. **Capital Efficiency (ERC-4626 Yield Vault)**: Committed capital intended for future DCA tranches is deposited into an ERC-4626 yield vault, earning a continuous ~5.4% APY while waiting for execution.
@@ -18,7 +18,7 @@ Traditional Dollar-Cost Averaging (DCA) protocols require users to deposit capit
 
 ---
 
-## 🏛️ System Architecture
+##  System Architecture
 
 ```
                                   ┌───────────────────────────┐
@@ -54,7 +54,7 @@ Traditional Dollar-Cost Averaging (DCA) protocols require users to deposit capit
 
 ---
 
-## 🌟 The Four Novelty Features
+##  The Four Novelty Features
 
 1. **DCA Fidelity Engine (`fidelityEngine.ts`)**:
    Calculates a strategy health score ($0\text{--}100$) based on delay penalties, allocation drift, and missed execution cycles. If $\text{Fidelity} < 70$, execution is **FORCED** to prevent schedule starvation.
@@ -67,7 +67,7 @@ Traditional Dollar-Cost Averaging (DCA) protocols require users to deposit capit
 
 ---
 
-## 💻 Technology Stack
+##  Technology Stack
 
 - **Smart Contracts**: Solidity 0.8.24, Foundry, OpenZeppelin ERC-4626, Uniswap v4 Hook architecture
 - **AI / Decision Engine**: TypeScript, Viem, Deterministic 12-Step Pipeline, Explainability Engine
@@ -77,7 +77,7 @@ Traditional Dollar-Cost Averaging (DCA) protocols require users to deposit capit
 
 ---
 
-## ⚡ Quick Start Guide (Local Anvil Setup)
+##  Quick Start Guide (Local Anvil Setup)
 
 ### Prerequisites
 - Node.js v20+ & npm
@@ -108,7 +108,7 @@ npm run dev
 
 ---
 
-## 🎬 3-Minute Live Demo Walkthrough
+##  3-Minute Live Demo Walkthrough
 
 1. **Create Strategy (`/create`)**:
    Enter Target Asset `ETH`, Amount `$100`, Frequency `Weekly` (`60s`), Max Delays `3`, Slippage Cap `0.5%`. Submit real contract transaction to `DCAManager.sol` on Anvil.
@@ -122,7 +122,7 @@ npm run dev
 
 ---
 
-## 🌐 Express REST API Reference (`http://localhost:4000`)
+##  Express REST API Reference (`http://localhost:4000`)
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -143,7 +143,7 @@ npm run dev
 
 ---
 
-## 🧪 Testing & DevSecOps
+##  Testing & DevSecOps
 
 ### Smart Contract Test Suite (`forge test -vv`)
 ```bash
@@ -163,7 +163,7 @@ npm run test:decision
 
 ---
 
-## 🛡️ DevSecOps & Security Highlights
+##  DevSecOps & Security Highlights
 
 - **Zero Hardcoded Secrets**: Repository scrubbed of all private keys; `.env.example` configured with standard public Anvil test keys.
 - **Reentrancy Protection**: State-changing contract functions enforce OpenZeppelin `ReentrancyGuard` (`nonReentrant`).
@@ -171,7 +171,7 @@ npm run test:decision
 
 ---
 
-## 📜 Documentation Reference
+##  Documentation Reference
 
 - [`docs/PROBLEM_STATEMENT_MAPPING.md`](file:///C:/Users/saswin/.gemini/antigravity-ide/scratch/docs/PROBLEM_STATEMENT_MAPPING.md): Compliance matrix for Problem Statement #12 requirements.
 - [`docs/NOVELTY.md`](file:///C:/Users/saswin/.gemini/antigravity-ide/scratch/docs/NOVELTY.md): In-depth documentation of the 4 novelty engines.

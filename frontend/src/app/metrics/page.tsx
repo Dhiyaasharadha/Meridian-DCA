@@ -34,14 +34,26 @@ export default function MetricsPage() {
   const slippageSaved = metrics?.slippageSaved ?? 142.50;
   const liquidityAdvantage = metrics?.liquidityAdvantage ?? 98.00;
   const executionCost = metrics?.executionCost ?? 32.40;
-  const efficiencyScore = metrics?.yieldGuardScore ?? 89;
+
+  // Live vs Illustrative calculation
+  const isLive = metrics ? metrics.demoBenchmark === false : false;
+  const traditionalDcaScore = metrics?.traditionalDcaScore ?? 62;
+  const meridianDcaScore = metrics?.yieldGuardScore ?? 89;
+
+  const scoreDifference = meridianDcaScore - traditionalDcaScore; // 89 - 62 = 27
+  const relativeImprovement = ((meridianDcaScore - traditionalDcaScore) / traditionalDcaScore) * 100; // 43.55%
+
+  const comparisonLabel = isLive ? "Live Engine Benchmark" : "Illustrative Demo Comparison";
+  const percentageText = isLive
+    ? `${relativeImprovement.toFixed(1)}% higher efficiency score`
+    : "43.5% higher illustrative score";
 
   // Side by Side Comparison Data for Recharts
   const comparisonData = [
     {
       metric: 'Efficiency Score',
-      'Traditional DCA': metrics?.traditionalDcaScore ?? 62,
-      'Meridian-DCA': efficiencyScore,
+      'Traditional DCA': traditionalDcaScore,
+      'Meridian-DCA': meridianDcaScore,
     },
     {
       metric: 'Yield Earned ($)',
@@ -97,7 +109,7 @@ export default function MetricsPage() {
                 <h3 className="text-lg font-serif font-bold text-[#1A1D1A]">Traditional DCA vs Meridian-DCA</h3>
               </div>
               <span className="rounded-full bg-[#FDF4EB] border border-[#F5D8B8] px-3 py-1 text-xs font-bold text-[#C27D38]">
-                Live Engine Benchmark
+                {comparisonLabel}
               </span>
             </div>
 
@@ -108,7 +120,7 @@ export default function MetricsPage() {
                   Traditional Static DCA
                 </span>
                 <div className="mt-2 font-serif text-5xl font-black text-[#686660]">
-                  {metrics?.traditionalDcaScore ?? 62} <span className="text-xs font-normal text-[#686660]">/ 100</span>
+                  {traditionalDcaScore} <span className="text-xs font-normal text-[#686660]">/ 100</span>
                 </div>
                 <p className="mt-2 text-xs text-[#686660]">
                   Zero yield while waiting; vulnerable to volatility spikes & pool slippage.
@@ -121,10 +133,10 @@ export default function MetricsPage() {
                   Meridian-DCA (v4 Hook)
                 </span>
                 <div className="mt-2 font-serif text-5xl font-black text-[#1E4D40]">
-                  {efficiencyScore} <span className="text-xs font-normal text-[#1E4D40]">/ 100</span>
+                  {meridianDcaScore} <span className="text-xs font-normal text-[#1E4D40]">/ 100</span>
                 </div>
                 <p className="mt-2 text-xs text-[#1E4D40] font-semibold">
-                  +43.5% higher capital efficiency driven by ERC-4626 vault yield & execution timing.
+                  {percentageText} (+{scoreDifference} pts difference) driven by ERC-4626 vault yield & execution timing.
                 </p>
               </div>
             </div>
@@ -182,7 +194,7 @@ export default function MetricsPage() {
                 </p>
               </div>
               <span className="text-xs text-[#686660] italic">
-                *Live Engine Benchmark
+                *{comparisonLabel}
               </span>
             </div>
 

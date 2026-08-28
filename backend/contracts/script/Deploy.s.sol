@@ -23,7 +23,9 @@ contract DeployScript is Test {
         address manager,
         address execution
     ) {
-        address deployer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // Anvil Default Account #0
+        address deployer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // Fallback deployer
+
+        vm.startBroadcast();
 
         usdc = address(new MockERC20("USD Coin", "USDC", 6));
         eth = address(new MockERC20("Ethereum", "ETH", 18));
@@ -43,7 +45,7 @@ contract DeployScript is Test {
 
         oracle = address(new MockMarketOracle());
 
-        // Mint demo balances to test accounts
+        // Mint demo balances to deployer account
         MockERC20(usdc).mint(deployer, 1000000e6);
         MockERC20(eth).mint(deployer, 1000e18);
         MockERC20(btc).mint(deployer, 50e8);
@@ -52,6 +54,8 @@ contract DeployScript is Test {
         // Mint to second demo account
         address demoUser2 = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
         MockERC20(usdc).mint(demoUser2, 500000e6);
+
+        vm.stopBroadcast();
 
         emit log_named_address("DCAManager", manager);
         emit log_named_address("ExecutionContract", execution);

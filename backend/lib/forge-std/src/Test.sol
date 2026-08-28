@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 contract Vm {
     function startPrank(address account) external {}
     function stopPrank() external {}
+    function startBroadcast() external {}
+    function stopBroadcast() external {}
     function warp(uint256 newTimestamp) external {}
     function expectRevert(bytes calldata revertData) external {}
 }

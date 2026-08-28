@@ -7,21 +7,22 @@ import { calculateDCAFidelity } from '../../../decision-engine/src/fidelityEngin
 import { calculateEconomicViability } from '../../../decision-engine/src/economicEngine';
 import { getDecisionLogs } from '../services/strategyService';
 
+import { CONFIG } from '../config/env';
+
 export const getHealth = async (req: Request, res: Response) => {
   const isConnected = await checkNetworkConnection();
 
   res.json({
     status: 'ok',
-    network: 'anvil',
-    chainId: 31337,
-    blockNumber: '1',
+    network: process.env.NODE_ENV === 'production' ? 'sepolia' : 'anvil',
+    chainId: CONFIG.CHAIN_ID,
     api: true,
     contracts: {
-      dcaManager: !!deployments.DCAManager,
-      vaultAdapter: !!deployments.VaultAdapter,
-      executionContract: !!deployments.ExecutionContract,
-      hook: !!deployments.DCAHook,
-      oracle: !!deployments.MockMarketOracle,
+      dcaManager: !!CONFIG.DCA_MANAGER_ADDRESS,
+      vaultAdapter: !!CONFIG.VAULT_ADAPTER_ADDRESS,
+      executionContract: !!CONFIG.EXECUTION_CONTRACT_ADDRESS,
+      hook: !!CONFIG.DCA_HOOK_ADDRESS,
+      oracle: !!CONFIG.MARKET_ORACLE_ADDRESS,
     },
     decisionEngine: true,
   });

@@ -15,3 +15,5 @@ remappings = [
 
 [rpc_endpoints]
 localhost = "http://127.0.0.1:8545"
+sepolia = "${PUBLIC_RPC_URL}"
+arbitrum_sepolia = "https://sepolia-rollup.arbitrum.io/rpc"

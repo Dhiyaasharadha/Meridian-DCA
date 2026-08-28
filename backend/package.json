@@ -7,6 +7,7 @@
     "build:contracts": "forge build",
     "test:contracts": "forge test -vv",
     "deploy:local": "forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast",
+    "deploy:sepolia": "forge script script/Deploy.s.sol --rpc-url sepolia --broadcast",
     "dev:api": "ts-node-dev --respawn --transpile-only api/src/server.ts",
     "test:decision": "ts-node decision-engine/test/runDecisionTests.ts",
     "build": "tsc",

@@ -12,6 +12,7 @@ export const Header: React.FC = () => {
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const { toasts, removeToast, demoScenario, setDemoScenario, activeStrategyId } = useStrategyStore();
+  const [demoAddress, setDemoAddress] = React.useState<string | null>('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
 
   const handleScenarioChange = async (scenario: string) => {
     setDemoScenario(scenario as any);
@@ -35,6 +36,31 @@ export const Header: React.FC = () => {
       console.warn('Demo reset error:', err);
     }
   };
+
+  const handleConnectWallet = async () => {
+    try {
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const injectedConn = connectors.find((c) => c.id === 'injected') || connectors[0];
+        if (injectedConn) {
+          connect({ connector: injectedConn });
+          return;
+        }
+      }
+      // Demo fallback if no Web3 extension active
+      setDemoAddress('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+      useStrategyStore.getState().addToast({
+        type: 'info',
+        title: 'Connected Anvil Account #0',
+        description: 'Connected as Anvil Account #0 (0xf39F...2266).'
+      });
+    } catch (err: any) {
+      console.warn('Wallet connect error, using demo account fallback:', err);
+      setDemoAddress('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+    }
+  };
+
+  const currentAddress = address || demoAddress;
+  const isWalletConnected = isConnected || !!demoAddress;
 
   return (
     <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-[#E3DDD1] bg-[#F5F2EB]/90 px-6 backdrop-blur-xl">
@@ -74,14 +100,17 @@ export const Header: React.FC = () => {
           <span className="font-semibold">Anvil (31337)</span>
         </div>
 
-        {isConnected ? (
+        {isWalletConnected ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]">
               <Wallet className="h-4 w-4" />
-              <span>{shortenAddress(address)}</span>
+              <span>{shortenAddress(currentAddress || '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')}</span>
             </div>
             <button
-              onClick={() => disconnect()}
+              onClick={() => {
+                if (isConnected) disconnect();
+                setDemoAddress(null);
+              }}
               title="Disconnect Wallet"
               className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E3DDD1] bg-[#FAFAFA] text-[#5A5852] transition-colors hover:border-[#F4C5C5] hover:bg-[#FCEAEB] hover:text-[#A83232]"
             >
@@ -90,10 +119,7 @@ export const Header: React.FC = () => {
           </div>
         ) : (
           <button
-            onClick={() => {
-              const injectedConn = connectors.find((c) => c.id === 'injected') || connectors[0];
-              if (injectedConn) connect({ connector: injectedConn });
-            }}
+            onClick={handleConnectWallet}
             className="flex items-center gap-2 rounded-xl bg-[#1E4D40] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-[#14382F] active:scale-95"
           >
             <Wallet className="h-4 w-4" />

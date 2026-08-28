@@ -7,7 +7,7 @@ import { postMarketCondition } from '@/lib/api';
 import { useWallet } from '@/hooks/useWallet';
 
 export const Header: React.FC = () => {
-  const { mode, address, displayLabel, displaySubLabel, shortAddress, connectBrowserWallet, disconnectWallet } = useWallet();
+  const { mode, address, displayLabel, shortAddress, isConnected, isWrongNetwork, connectWallet, disconnectWallet, switchOrAddAnvilNetwork } = useWallet();
   const { toasts, removeToast, demoScenario, setDemoScenario, activeStrategyId } = useStrategyStore();
 
   const handleScenarioChange = async (scenario: string) => {
@@ -67,13 +67,13 @@ export const Header: React.FC = () => {
       {/* Wallet Connection & Network */}
       <div className="flex items-center gap-3">
         <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-[#E3DDD1] bg-white px-3 py-1 text-xs text-[#5A5852] shadow-sm">
-          <span className="h-2 w-2 rounded-full bg-[#1E4D40]" />
-          <span className="font-semibold">Anvil (31337)</span>
+          <span className={`h-2 w-2 rounded-full ${isWrongNetwork ? 'bg-[#A83232]' : 'bg-[#1E4D40]'}`} />
+          <span className="font-semibold">{isWrongNetwork ? 'Wrong Network' : 'Anvil (31337)'}</span>
         </div>
 
-        {mode === 'BROWSER_WALLET' ? (
+        {isConnected && !isWrongNetwork ? (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]" title="Wallet Connected (Browser Wallet)">
+            <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]" title="Wallet Connected">
               <Wallet className="h-4 w-4" />
               <span>{shortAddress}</span>
             </div>
@@ -85,32 +85,17 @@ export const Header: React.FC = () => {
               <LogOut className="h-4 w-4" />
             </button>
           </div>
-        ) : mode === 'LOCAL_ANVIL_DEMO' ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]" title="Anvil Demo Wallet (Local Development)">
-              <Wallet className="h-4 w-4" />
-              <div className="flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span>{shortAddress}</span>
-                  {displaySubLabel && (
-                    <span className="rounded bg-[#1E4D40]/10 px-1 py-0.2 text-[9px] font-bold uppercase tracking-wider text-[#1E4D40]">
-                      {displaySubLabel}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={disconnectWallet}
-              title="Disconnect Demo Wallet"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E3DDD1] bg-[#FAFAFA] text-[#5A5852] transition-colors hover:border-[#F4C5C5] hover:bg-[#FCEAEB] hover:text-[#A83232]"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
+        ) : isWrongNetwork ? (
+          <button
+            onClick={switchOrAddAnvilNetwork}
+            className="flex items-center gap-2 rounded-xl bg-[#A83232] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-[#8A2525] active:scale-95"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <span>Switch to Anvil (31337)</span>
+          </button>
         ) : (
           <button
-            onClick={connectBrowserWallet}
+            onClick={connectWallet}
             className="flex items-center gap-2 rounded-xl bg-[#1E4D40] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-[#14382F] active:scale-95"
           >
             <Wallet className="h-4 w-4" />

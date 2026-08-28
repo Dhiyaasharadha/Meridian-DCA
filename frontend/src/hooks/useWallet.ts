@@ -1,88 +1,88 @@
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
 import { useState, useEffect } from 'react';
-import { createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { anvilChain } from '@/lib/wagmi';
 
-export type WalletMode = 'BROWSER_WALLET' | 'LOCAL_ANVIL_DEMO' | 'NO_WALLET' | 'WRONG_NETWORK' | 'ERROR';
+export type WalletStateMode = 
+  | 'CONNECTED'
+  | 'CONNECTING'
+  | 'DISCONNECTED'
+  | 'WRONG_NETWORK'
+  | 'NO_INJECTED_WALLET'
+  | 'ERROR';
 
-export interface WalletInfo {
-  mode: WalletMode;
+export interface WalletState {
+  mode: WalletStateMode;
   address: `0x${string}` | null;
   displayLabel: string;
-  displaySubLabel?: string;
   shortAddress: string;
-  isDemoMode: boolean;
   isConnected: boolean;
+  isConnecting: boolean;
+  isWrongNetwork: boolean;
   chainId: number | undefined;
-  connectBrowserWallet: () => void;
+  connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  getWalletClient: () => any;
+  switchOrAddAnvilNetwork: () => Promise<void>;
 }
 
-const ANVIL_DEMO_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as `0x${string}`;
-const ANVIL_DEMO_PRIVATE_KEY = (process.env.NEXT_PUBLIC_ANVIL_DEMO_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80') as `0x${string}`;
-
-export function useWallet(): WalletInfo {
+export function useWallet(): WalletState {
   const wagmiAccount = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
 
-  const [useLocalDemo, setUseLocalDemo] = useState<boolean>(true);
+  const [hasInjected, setHasInjected] = useState<boolean>(true);
 
-  // Strict Production & Network Safety Conditions (Requirement #3 & #12)
-  const isLocalEnv = process.env.NODE_ENV !== 'production';
-  const isLocalHost = typeof window === 'undefined' || 
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1';
-
-  // Anvil fallback is ALLOWED ONLY when NODE_ENV !== production AND host is localhost/127.0.0.1
-  const isAnvilDemoAllowed = isLocalEnv && isLocalHost;
-
-  let mode: WalletMode = 'NO_WALLET';
-  let address: `0x${string}` | null = null;
-  let displayLabel = 'Connect Wallet';
-  let displaySubLabel: string | undefined = undefined;
-  let isDemoMode = false;
-  let isConnected = false;
-
-  if (wagmiAccount.isConnected && wagmiAccount.address) {
-    address = wagmiAccount.address as `0x${string}`;
-    isConnected = true;
-    isDemoMode = false;
-
-    if (wagmiAccount.chainId && wagmiAccount.chainId !== 31337) {
-      mode = 'WRONG_NETWORK';
-      displayLabel = 'Switch to Anvil';
-    } else {
-      mode = 'BROWSER_WALLET';
-      displayLabel = 'Wallet Connected';
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setHasInjected(!!(window as any).ethereum);
     }
-  } else if (isAnvilDemoAllowed && useLocalDemo) {
-    // Mode 2 — Local Anvil Demo Wallet
-    mode = 'LOCAL_ANVIL_DEMO';
-    address = ANVIL_DEMO_ADDRESS;
-    isConnected = true;
-    isDemoMode = true;
-    displayLabel = 'Anvil Demo Wallet';
-    displaySubLabel = 'Local Development';
+  }, []);
+
+  const isConnected = wagmiAccount.isConnected && !!wagmiAccount.address;
+  const isConnecting = wagmiAccount.isConnecting;
+  const activeChainId = wagmiAccount.chainId || chainId;
+  const isWrongNetwork = isConnected && activeChainId !== 31337;
+
+  let mode: WalletStateMode = 'DISCONNECTED';
+  let displayLabel = 'Connect Wallet';
+
+  if (!hasInjected) {
+    mode = 'NO_INJECTED_WALLET';
+    displayLabel = 'Install MetaMask';
+  } else if (isConnecting) {
+    mode = 'CONNECTING';
+    displayLabel = 'Connecting Wallet...';
+  } else if (isWrongNetwork) {
+    mode = 'WRONG_NETWORK';
+    displayLabel = 'Switch to Anvil (31337)';
+  } else if (isConnected) {
+    mode = 'CONNECTED';
+    displayLabel = 'Wallet Connected';
   } else {
-    // Mode 3 — No Wallet (e.g. Production or user disconnected demo mode)
-    mode = 'NO_WALLET';
-    address = null;
-    isConnected = false;
-    isDemoMode = false;
+    mode = 'DISCONNECTED';
     displayLabel = 'Connect Wallet';
   }
 
-  const connectBrowserWallet = () => {
+  const formatShortAddress = (addr: string | null): string => {
+    if (!addr) return '';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const connectWallet = async () => {
+    if (!hasInjected) {
+      if (typeof window !== 'undefined') {
+        window.open('https://metamask.io/download/', '_blank');
+      }
+      return;
+    }
+
     try {
-      const injected = connectors.find((c) => c.id === 'injected') || connectors[0];
-      if (injected) {
-        connect({ connector: injected });
+      const injectedConnector = connectors.find((c) => c.id === 'injected') || connectors[0];
+      if (injectedConnector) {
+        connect({ connector: injectedConnector });
       }
     } catch (err) {
-      console.warn('Browser wallet connection failed:', err);
+      console.error('MetaMask connection failed:', err);
     }
   };
 
@@ -90,37 +90,58 @@ export function useWallet(): WalletInfo {
     if (wagmiAccount.isConnected) {
       disconnect();
     }
-    setUseLocalDemo(false);
   };
 
-  const getWalletClient = () => {
-    if (mode === 'LOCAL_ANVIL_DEMO') {
-      const account = privateKeyToAccount(ANVIL_DEMO_PRIVATE_KEY);
-      return createWalletClient({
-        account,
-        chain: anvilChain,
-        transport: http('http://127.0.0.1:8545'),
-      });
+  const switchOrAddAnvilNetwork = async () => {
+    if (typeof window === 'undefined' || !(window as any).ethereum) return;
+
+    try {
+      if (switchChain) {
+        switchChain({ chainId: 31337 });
+      } else {
+        await (window as any).ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x7A69' }], // 31337 in hex
+        });
+      }
+    } catch (switchError: any) {
+      if (switchError?.code === 4902 || switchError?.message?.includes('Unrecognized chain')) {
+        try {
+          await (window as any).ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0x7A69',
+                chainName: 'Anvil Localhost',
+                rpcUrls: ['http://127.0.0.1:8545'],
+                nativeCurrency: {
+                  name: 'Ether',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+              },
+            ],
+          });
+        } catch (addError) {
+          console.error('Failed to add Anvil network to MetaMask:', addError);
+        }
+      } else {
+        console.error('Failed to switch network in MetaMask:', switchError);
+      }
     }
-    return null; // For BROWSER_WALLET, Wagmi handle writeContractAsync directly
-  };
-
-  const formatShortAddress = (addr: string | null): string => {
-    if (!addr) return '';
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   return {
     mode,
-    address,
+    address: (wagmiAccount.address as `0x${string}`) || null,
     displayLabel,
-    displaySubLabel,
-    shortAddress: formatShortAddress(address),
-    isDemoMode,
+    shortAddress: formatShortAddress(wagmiAccount.address || null),
     isConnected,
-    chainId: wagmiAccount.chainId || 31337,
-    connectBrowserWallet,
+    isConnecting,
+    isWrongNetwork,
+    chainId: activeChainId,
+    connectWallet,
     disconnectWallet,
-    getWalletClient,
+    switchOrAddAnvilNetwork,
   };
 }

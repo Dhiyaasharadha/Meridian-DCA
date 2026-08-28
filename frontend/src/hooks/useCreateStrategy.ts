@@ -59,9 +59,9 @@ export function useCreateStrategy() {
       addToast({
         type: 'error',
         title: 'Wrong Network',
-        description: 'Please switch your Web3 wallet to Anvil Localhost (Chain ID 31337).',
+        description: `Please switch your Web3 wallet to ${wallet.targetChainId === 11155111 ? 'Ethereum Sepolia' : 'Anvil Localhost (Chain ID 31337)'}.`,
       });
-      await wallet.switchOrAddAnvilNetwork();
+      await wallet.switchOrAddNetwork();
       return false;
     }
 

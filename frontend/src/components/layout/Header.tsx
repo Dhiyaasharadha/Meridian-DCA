@@ -7,8 +7,10 @@ import { postMarketCondition } from '@/lib/api';
 import { useWallet } from '@/hooks/useWallet';
 
 export const Header: React.FC = () => {
-  const { mode, address, displayLabel, shortAddress, isConnected, isWrongNetwork, connectWallet, disconnectWallet, switchOrAddAnvilNetwork } = useWallet();
+  const { mode, address, displayLabel, shortAddress, isConnected, isWrongNetwork, targetChainId, connectWallet, disconnectWallet, switchOrAddNetwork } = useWallet();
   const { toasts, removeToast, demoScenario, setDemoScenario, activeStrategyId } = useStrategyStore();
+
+  const networkName = targetChainId === 11155111 ? 'Sepolia (11155111)' : 'Anvil (31337)';
 
   const handleScenarioChange = async (scenario: string) => {
     setDemoScenario(scenario as any);
@@ -68,7 +70,7 @@ export const Header: React.FC = () => {
       <div className="flex items-center gap-3">
         <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-[#E3DDD1] bg-white px-3 py-1 text-xs text-[#5A5852] shadow-sm">
           <span className={`h-2 w-2 rounded-full ${isWrongNetwork ? 'bg-[#A83232]' : 'bg-[#1E4D40]'}`} />
-          <span className="font-semibold">{isWrongNetwork ? 'Wrong Network' : 'Anvil (31337)'}</span>
+          <span className="font-semibold">{isWrongNetwork ? 'Wrong Network' : networkName}</span>
         </div>
 
         {isConnected && !isWrongNetwork ? (
@@ -87,11 +89,11 @@ export const Header: React.FC = () => {
           </div>
         ) : isWrongNetwork ? (
           <button
-            onClick={switchOrAddAnvilNetwork}
+            onClick={switchOrAddNetwork}
             className="flex items-center gap-2 rounded-xl bg-[#A83232] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-[#8A2525] active:scale-95"
           >
             <AlertCircle className="h-4 w-4" />
-            <span>Switch to Anvil (31337)</span>
+            <span>Switch to {networkName}</span>
           </button>
         ) : (
           <button

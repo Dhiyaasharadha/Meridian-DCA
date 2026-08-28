@@ -17,10 +17,11 @@ export interface WalletState {
   isConnected: boolean;
   isConnecting: boolean;
   isWrongNetwork: boolean;
+  targetChainId: number;
   chainId: number | undefined;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  switchOrAddAnvilNetwork: () => Promise<void>;
+  switchOrAddNetwork: () => Promise<void>;
 }
 
 export function useWallet(): WalletState {
@@ -38,10 +39,14 @@ export function useWallet(): WalletState {
     }
   }, []);
 
+  const targetChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 31337);
+  const targetChainHex = `0x${targetChainId.toString(16)}`;
+  const targetChainName = targetChainId === 11155111 ? 'Ethereum Sepolia' : 'Anvil Localhost';
+
   const isConnected = wagmiAccount.isConnected && !!wagmiAccount.address;
   const isConnecting = wagmiAccount.isConnecting;
   const activeChainId = wagmiAccount.chainId || chainId;
-  const isWrongNetwork = isConnected && activeChainId !== 31337;
+  const isWrongNetwork = isConnected && activeChainId !== targetChainId;
 
   let mode: WalletStateMode = 'DISCONNECTED';
   let displayLabel = 'Connect Wallet';
@@ -54,7 +59,7 @@ export function useWallet(): WalletState {
     displayLabel = 'Connecting Wallet...';
   } else if (isWrongNetwork) {
     mode = 'WRONG_NETWORK';
-    displayLabel = 'Switch to Anvil (31337)';
+    displayLabel = `Switch to ${targetChainName}`;
   } else if (isConnected) {
     mode = 'CONNECTED';
     displayLabel = 'Wallet Connected';
@@ -92,16 +97,16 @@ export function useWallet(): WalletState {
     }
   };
 
-  const switchOrAddAnvilNetwork = async () => {
+  const switchOrAddNetwork = async () => {
     if (typeof window === 'undefined' || !(window as any).ethereum) return;
 
     try {
       if (switchChain) {
-        switchChain({ chainId: 31337 });
+        switchChain({ chainId: targetChainId });
       } else {
         await (window as any).ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x7A69' }], // 31337 in hex
+          params: [{ chainId: targetChainHex }],
         });
       }
     } catch (switchError: any) {
@@ -111,9 +116,9 @@ export function useWallet(): WalletState {
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: '0x7A69',
-                chainName: 'Anvil Localhost',
-                rpcUrls: ['http://127.0.0.1:8545'],
+                chainId: targetChainHex,
+                chainName: targetChainName,
+                rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545'],
                 nativeCurrency: {
                   name: 'Ether',
                   symbol: 'ETH',
@@ -123,7 +128,7 @@ export function useWallet(): WalletState {
             ],
           });
         } catch (addError) {
-          console.error('Failed to add Anvil network to MetaMask:', addError);
+          console.error(`Failed to add ${targetChainName} to MetaMask:`, addError);
         }
       } else {
         console.error('Failed to switch network in MetaMask:', switchError);
@@ -139,9 +144,10 @@ export function useWallet(): WalletState {
     isConnected,
     isConnecting,
     isWrongNetwork,
+    targetChainId,
     chainId: activeChainId,
     connectWallet,
     disconnectWallet,
-    switchOrAddAnvilNetwork,
+    switchOrAddNetwork,
   };
 }

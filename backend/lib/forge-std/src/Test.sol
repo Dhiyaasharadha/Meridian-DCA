@@ -13,6 +13,7 @@ contract Test {
 
     event log(string);
     event log_named_uint(string key, uint256 val);
+    event log_named_address(string key, address val);
 
     function assertEq(uint256 a, uint256 b) internal pure {
         require(a == b, "assertEq uint failed");

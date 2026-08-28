@@ -12,21 +12,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
 
-      - name: Build Contracts
+      - name: Show Forge version
+        run: forge --version
+
+      - name: Build contracts
         run: |
           cd backend
           forge build
 
-      - name: Run Foundry Test Suite
+      - name: Test contracts
         run: |
           cd backend
-          forge test -vv
+          forge test -vvv
 
   backend-test:
     name: Decision Engine & API Build

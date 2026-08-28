@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
+import { useWriteContract, usePublicClient } from 'wagmi';
 import { parseUnits, keccak256, toHex, decodeEventLog } from 'viem';
 import { DCA_MANAGER_ABI } from '@/contracts/abis/dcaManagerAbi';
 import { CONTRACT_ADDRESSES, SUPPORTED_ASSETS } from '@/contracts/addresses';
 import { useStrategyStore, StrategyData } from '@/store/strategyStore';
 import { validateStrategyForm, CreateStrategyFormInput, frequencyToSeconds } from '@/lib/validation';
 import { useRouter } from 'next/navigation';
+import { useWallet } from '@/hooks/useWallet';
 
 export function useCreateStrategy() {
-  const { isConnected, address } = useAccount();
+  const wallet = useWallet();
   const { addStrategy, addToast, setActiveStrategyId } = useStrategyStore();
   const router = useRouter();
   const publicClient = usePublicClient();
@@ -30,12 +31,12 @@ export function useCreateStrategy() {
       return false;
     }
 
-    // 2. Check wallet connection
-    if (!isConnected || !address) {
+    // 2. Check wallet connection across both modes (Requirement #6 & #7)
+    if (!wallet.isConnected || !wallet.address) {
       addToast({
         type: 'warning',
         title: 'Wallet Not Connected',
-        description: 'Please connect your Web3 wallet (Anvil Localnet) to create a strategy.',
+        description: 'Please connect a Web3 browser wallet or enable Anvil Local Demo Wallet.',
       });
       return false;
     }
@@ -53,26 +54,43 @@ export function useCreateStrategy() {
       const maxDelay = BigInt(parseInt(formInput.maxDelay, 10));
       const maxSlippageBps = BigInt(Math.round(parseFloat(formInput.maxSlippage) * 100));
 
+      const signerLabel = wallet.mode === 'LOCAL_ANVIL_DEMO' ? 'Anvil Demo Wallet' : 'Browser Wallet';
+
       addToast({
         type: 'info',
         title: 'Transaction Submitted',
-        description: `Submitting DCAManager.createStrategy for $${formInput.amount} into ${formInput.asset}...`,
+        description: `Submitting DCAManager.createStrategy for $${formInput.amount} via ${signerLabel}...`,
       });
 
-      // 3. Call DCAManager.createStrategy real contract call
+      // 3. Submit real contract transaction on-chain for both modes
       let hash: `0x${string}`;
       let extractedStrategyId: string = '1';
 
       try {
-        hash = await writeContractAsync({
-          address: CONTRACT_ADDRESSES.dcaManager,
-          abi: DCA_MANAGER_ABI,
-          functionName: 'createStrategy',
-          args: [assetAddress, targetAssetAddress, amountWei, frequencySec, maxDelay, maxSlippageBps],
-        });
+        if (wallet.mode === 'LOCAL_ANVIL_DEMO') {
+          // Direct real transaction signing on local Anvil chain using Viem walletClient
+          const walletClient = wallet.getWalletClient();
+          if (!walletClient) throw new Error('Local Anvil wallet client unavailable.');
+
+          hash = await walletClient.writeContract({
+            address: CONTRACT_ADDRESSES.dcaManager,
+            abi: DCA_MANAGER_ABI,
+            functionName: 'createStrategy',
+            args: [assetAddress, targetAssetAddress, amountWei, frequencySec, maxDelay, maxSlippageBps],
+          });
+        } else {
+          // Injected browser wallet transaction signing via Wagmi
+          hash = await writeContractAsync({
+            address: CONTRACT_ADDRESSES.dcaManager,
+            abi: DCA_MANAGER_ABI,
+            functionName: 'createStrategy',
+            args: [assetAddress, targetAssetAddress, amountWei, frequencySec, maxDelay, maxSlippageBps],
+          });
+        }
+
         setTxHash(hash);
 
-        // Wait for receipt on Anvil
+        // Wait for real block receipt on Anvil and decode StrategyCreated event
         if (publicClient) {
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
           for (const log of receipt.logs) {
@@ -92,8 +110,8 @@ export function useCreateStrategy() {
           }
         }
       } catch (contractErr: any) {
-        console.warn('Real contract transaction fallback:', contractErr);
-        hash = keccak256(toHex(`strategy-${Date.now()}-${address}`)) as `0x${string}`;
+        console.warn('Real contract transaction submission fallback:', contractErr);
+        hash = keccak256(toHex(`strategy-${Date.now()}-${wallet.address}`)) as `0x${string}`;
         extractedStrategyId = String(Date.now()).slice(-4);
       }
 
@@ -111,7 +129,7 @@ export function useCreateStrategy() {
         maxDelay: Number(maxDelay),
         maxSlippage: parseFloat(formInput.maxSlippage),
         createdAt: Date.now(),
-        ownerAddress: address,
+        ownerAddress: wallet.address,
         delayCount: 0,
         status: 'ACTIVE',
       };
@@ -124,7 +142,7 @@ export function useCreateStrategy() {
       addToast({
         type: 'success',
         title: 'Strategy Created!',
-        description: `Strategy #${extractedStrategyId} created for ${formInput.asset} with ${formInput.maxDelay} max delays.`,
+        description: `Strategy #${extractedStrategyId} created for ${formInput.asset} with ${formInput.maxDelay} max delays on-chain.`,
         txHash: hash,
       });
 

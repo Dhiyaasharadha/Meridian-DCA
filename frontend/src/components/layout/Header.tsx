@@ -1,18 +1,14 @@
 'use client';
 
 import React from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { shortenAddress } from '@/lib/formatting';
 import { Wallet, LogOut, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useStrategyStore } from '@/store/strategyStore';
 import { postMarketCondition } from '@/lib/api';
+import { useWallet } from '@/hooks/useWallet';
 
 export const Header: React.FC = () => {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { mode, address, displayLabel, displaySubLabel, shortAddress, connectBrowserWallet, disconnectWallet } = useWallet();
   const { toasts, removeToast, demoScenario, setDemoScenario, activeStrategyId } = useStrategyStore();
-  const [demoAddress, setDemoAddress] = React.useState<string | null>('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
 
   const handleScenarioChange = async (scenario: string) => {
     setDemoScenario(scenario as any);
@@ -36,31 +32,6 @@ export const Header: React.FC = () => {
       console.warn('Demo reset error:', err);
     }
   };
-
-  const handleConnectWallet = async () => {
-    try {
-      if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const injectedConn = connectors.find((c) => c.id === 'injected') || connectors[0];
-        if (injectedConn) {
-          connect({ connector: injectedConn });
-          return;
-        }
-      }
-      // Demo fallback if no Web3 extension active
-      setDemoAddress('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
-      useStrategyStore.getState().addToast({
-        type: 'info',
-        title: 'Connected Anvil Account #0',
-        description: 'Connected as Anvil Account #0 (0xf39F...2266).'
-      });
-    } catch (err: any) {
-      console.warn('Wallet connect error, using demo account fallback:', err);
-      setDemoAddress('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
-    }
-  };
-
-  const currentAddress = address || demoAddress;
-  const isWalletConnected = isConnected || !!demoAddress;
 
   return (
     <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-[#E3DDD1] bg-[#F5F2EB]/90 px-6 backdrop-blur-xl">
@@ -100,18 +71,38 @@ export const Header: React.FC = () => {
           <span className="font-semibold">Anvil (31337)</span>
         </div>
 
-        {isWalletConnected ? (
+        {mode === 'BROWSER_WALLET' ? (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]">
+            <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]" title="Wallet Connected (Browser Wallet)">
               <Wallet className="h-4 w-4" />
-              <span>{shortenAddress(currentAddress || '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')}</span>
+              <span>{shortAddress}</span>
             </div>
             <button
-              onClick={() => {
-                if (isConnected) disconnect();
-                setDemoAddress(null);
-              }}
+              onClick={disconnectWallet}
               title="Disconnect Wallet"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E3DDD1] bg-[#FAFAFA] text-[#5A5852] transition-colors hover:border-[#F4C5C5] hover:bg-[#FCEAEB] hover:text-[#A83232]"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        ) : mode === 'LOCAL_ANVIL_DEMO' ? (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-xl border border-[#B6DBC9] bg-[#E8F3EE] px-3.5 py-1.5 font-mono text-xs font-bold text-[#1E4D40]" title="Anvil Demo Wallet (Local Development)">
+              <Wallet className="h-4 w-4" />
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1.5">
+                  <span>{shortAddress}</span>
+                  {displaySubLabel && (
+                    <span className="rounded bg-[#1E4D40]/10 px-1 py-0.2 text-[9px] font-bold uppercase tracking-wider text-[#1E4D40]">
+                      {displaySubLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={disconnectWallet}
+              title="Disconnect Demo Wallet"
               className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E3DDD1] bg-[#FAFAFA] text-[#5A5852] transition-colors hover:border-[#F4C5C5] hover:bg-[#FCEAEB] hover:text-[#A83232]"
             >
               <LogOut className="h-4 w-4" />
@@ -119,11 +110,11 @@ export const Header: React.FC = () => {
           </div>
         ) : (
           <button
-            onClick={handleConnectWallet}
+            onClick={connectBrowserWallet}
             className="flex items-center gap-2 rounded-xl bg-[#1E4D40] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-[#14382F] active:scale-95"
           >
             <Wallet className="h-4 w-4" />
-            <span>Connect Wallet</span>
+            <span>{displayLabel}</span>
           </button>
         )}
       </div>
@@ -157,7 +148,7 @@ export const Header: React.FC = () => {
                 )}
                 {toast.txHash && (
                   <p className="font-mono text-[10px] font-bold">
-                    Tx: {shortenAddress(toast.txHash)}
+                    Tx: {toast.txHash.slice(0, 6)}...{toast.txHash.slice(-4)}
                   </p>
                 )}
               </div>

@@ -1,0 +1,38 @@
+# Dependency directories
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Next.js build artifacts
+.next/
+frontend/.next/
+
+# Build outputs & compiled JS
+dist/
+backend/dist/
+frontend/out/
+
+# Foundry build outputs (out/ artifacts directory ignored, but keeping exported abi/ & deployments/ JSON files!)
+backend/out/
+backend/cache/
+backend/broadcast/
+
+# Environment files & secret keys
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.key
+*.pem
+*.zip
+node.zip
+
+# IDE & OS files
+.DS_Store
+Thumbs.db
+*.log
+backend/npm-debug.log*
+frontend/npm-debug.log*
+.vscode/
+.idea/

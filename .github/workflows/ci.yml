@@ -17,12 +17,7 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        shell: bash
-        run: |
-          curl -L https://foundry.paradigm.xyz | bash
-          export PATH="$HOME/.foundry/bin:$PATH"
-          foundryup
-          echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
+        uses: foundry-rs/foundry-toolchain@v1
 
       - name: Verify Foundry
         run: forge --version
